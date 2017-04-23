@@ -635,6 +635,8 @@ class QAST::MASTRegexCompiler {
         my $s0 := $!regalloc.fresh_s();
         my $i0 := $!regalloc.fresh_i();
         my @ins;
+        my $fake;
+        my $o0 := $!regalloc.fresh_o();
         if $node.negate {
             # Need explicit check we're not going beyond the string end in the
             # negated case, to avoid false positive.
@@ -665,7 +667,17 @@ class QAST::MASTRegexCompiler {
                          $node.subtype eq 'ignoremark' ?? 'eqatim_s' !! 'eqat_s';
             my $cmpop := $node.negate ?? 'if_i' !! 'unless_i';
             nqp::push(@ins, op('const_s', $s0, sval($litconst)));
-            nqp::push(@ins, op($eq_op, $i0, %!reg<tgt>, $s0, %!reg<pos>));
+            if $node.subtype eq 'ignorecase' {
+                note($litconst);
+                nqp::push(@ins, op($eq_op, $o0, %!reg<tgt>, $s0, %!reg<pos>));
+                # Try and shift it into the $i0 register
+                nqp::push(@ins, op('shift', $o0, $i0));
+
+            }
+            else {
+                nqp::push(@ins, op($eq_op, $i0, %!reg<tgt>, $s0, %!reg<pos>));
+
+            }
             nqp::push(@ins, op($cmpop, $i0, %!reg<fail>));
         }
         unless $node.subtype eq 'zerowidth' {
