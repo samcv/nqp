@@ -518,6 +518,18 @@ my class MASTCompilerInstance {
                 elsif $got == $MVM_reg_void {
                     push_op($il, 'const_s', $res_reg, MAST::SVal.new( :value('') ));
                 }
+                elsif $got == $MVM_reg_uint64 {
+                    # This works
+                    push_op($il, 'coerce_us', $res_reg, $reg);
+                }
+                elsif $got == $MVM_reg_uint32 {
+                    # This doesn't work. (code stolen from line 580)
+                    my $uint64 := self.coercion($res, $MVM_reg_uint64);
+                    $il := $uint64.instructions;
+                    $reg := $uint64.result_reg;
+                    $release_type := $uint64.result_kind;
+                    push_op($il, 'coerce_us', $res_reg, $reg);
+                }
                 else {
                     nqp::die("Unknown coercion case for str; got: "~$got);
                 }
